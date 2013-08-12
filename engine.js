@@ -20,44 +20,47 @@ var particle = (function (x, y, vx, vy) {
       return y;
     },
     distanceFrom: function (xc, yc){
-      var dx = xc - x;
-      var dy = yc - y;
-      return {dx: dx, dy: dy};
+      var dx = x - xc;
+      var dy = y - yc;
+      var dist = Math.sqrt(Math.pow(dx,2)+Math.pow(dy,2));
+      var xComp = dist*dist/dx;
+      var yComp = dist*dist/dy;
+      return {x: xComp, y: yComp};
     },
     iterate: function (){
-      var fx = 0;
-      var fy = 0;
-      var distance;
+      var forceX = 0;
+      var forceY = 0;
+      var dist;
       var sign = 0;
 
       circle(x, y, 5);
       for(var j = 0; j < particles.length; j++){
         if(particles[j] === this)
           continue;
-        distance = particles[j].distanceFrom(x,y);
-        if(distance.dx != 0){
-          sign = distance.dx/Math.abs(distance.dx);
-          fx += sign/Math.pow(distance.dx,2);
+        dist = particles[j].distanceFrom(x,y);
+        if(dist.dx != 0){
+          sign = dist.x/Math.abs(dist.x);
+          forceX += sign/Math.pow(dist.x,2);
         }
-        if(distance.dy != 0){
-          sign = distance.dy/Math.abs(distance.dy);
-          fy += sign/Math.pow(distance.dy,2);
+        if(dist.dy != 0){
+          sign = dist.y/Math.abs(dist.y);
+          forceY += sign/Math.pow(dist.y,2);
         }
       }
-      vx += fx*10;
-      vy += fy*10;
-      line(x,y,x+fx*100,y+fy*100,'#499df5')
+      vx += forceX*1000;
+      vy += forceY*1000;
       if (x + vx > WIDTH || x + vx < 0)
         vx = -vx;
       if (y + vy > HEIGHT || y + vy < 0)
         vy = -vy;
+      line(x,y,x+forceX*100,y+forceY*100,'#499df5')
       line(x,y,x+vx*10,y+vy*10,'#ff0000');
       y += vy;
       x += vx;
-      // document.getElementById('debug1').innerHTML = "fx: "+fx;
-      // document.getElementById('debug2').innerHTML = "fy: "+fy;
-      // document.getElementById('debug3').innerHTML = "dx: "+vx;
-      // document.getElementById('debug4').innerHTML = "dy: "+vy;
+      document.getElementById('debug1').innerHTML = "forceX: "+forceX;
+      document.getElementById('debug2').innerHTML = "forceY:"+forceY;
+      document.getElementById('debug3').innerHTML = "vx: "+vx;
+      document.getElementById('debug4').innerHTML = "vy: "+vy;
     }
   };
 });
@@ -106,8 +109,6 @@ function circle(x,y,r) {
 function line(x1,y1,x2,y2,color){
   ctx.moveTo(x1,y1);
   ctx.lineTo(x2,y2);
-  ctx.fillText("("+x1+", "+y1+")",x1+2,y1);
-  ctx.fillText("("+x2+", "+y2+")",x2+2,y2);
   ctx.strokeStyle = color;
   ctx.stroke();
   ctx.strokeStyle = '#000000';
@@ -115,11 +116,6 @@ function line(x1,y1,x2,y2,color){
 
 function clear() {
   ctx.clearRect(0, 0, WIDTH, HEIGHT);
-  ctx.fillText("Y",5,HEIGHT-5);
-  ctx.moveTo(1,1);
-  ctx.lineTo(WIDTH,1);
-  ctx.stroke();
-  ctx.fillText("X",WIDTH-20,20);
 }
 
 function init() {
@@ -128,9 +124,6 @@ function init() {
   WIDTH = cnvs.width;
   HEIGHT = cnvs.height;
   ctx.font="12px Arial";
-  ctx.moveTo(1,1);
-  ctx.lineTo(1,HEIGHT);
-  ctx.stroke();
   return setInterval(draw, 100);
 }
 
