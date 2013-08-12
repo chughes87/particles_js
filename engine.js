@@ -26,8 +26,8 @@ var particle = (function (x,y,dx,dy){
     },
     iterate: function (){
       circle(x, y, 10);
-       for(i = 0; i < particles.length; i++){
-        document.getElementById('debug').innerHTML = i;
+       //for(i = 0; i < particles.length; i++){
+       // document.getElementById('debug').innerHTML = i;
         // if(particles[i] == this)
           // continue;
         // distance = this.distanceFrom(particles[i]);
@@ -35,7 +35,7 @@ var particle = (function (x,y,dx,dy){
         // fy = 1/Math.pow(distance.y,2);
         // dx += fx;
         // dy += fy;
-      }
+      //}
       if (x + dx > WIDTH || x + dx < 0)
         dx = -dx;
       if (y + dy > HEIGHT || y + dy < 0)
