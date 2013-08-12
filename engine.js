@@ -29,17 +29,18 @@ var particle = (function (x, y, vx, vy) {
       var fy = 0;
       var distance;
       var sign = 0;
+
       circle(x, y, 5);
       for(var j = 0; j < particles.length; j++){
         if(particles[j] === this)
           continue;
         distance = particles[j].distanceFrom(x,y);
         if(distance.dx != 0){
-          var sign = distance.dx/Math.abs(distance.dx);
+          sign = distance.dx/Math.abs(distance.dx);
           fx += sign/Math.pow(distance.dx,2);
         }
         if(distance.dy != 0){
-          var sign = distance.dy/Math.abs(distance.dy);
+          sign = distance.dy/Math.abs(distance.dy);
           fy += sign/Math.pow(distance.dy,2);
         }
       }
@@ -105,6 +106,8 @@ function circle(x,y,r) {
 function line(x1,y1,x2,y2,color){
   ctx.moveTo(x1,y1);
   ctx.lineTo(x2,y2);
+  ctx.fillText("("+x1+", "+y1+")",x1+2,y1);
+  ctx.fillText("("+x2+", "+y2+")",x2+2,y2);
   ctx.strokeStyle = color;
   ctx.stroke();
   ctx.strokeStyle = '#000000';
@@ -112,6 +115,11 @@ function line(x1,y1,x2,y2,color){
 
 function clear() {
   ctx.clearRect(0, 0, WIDTH, HEIGHT);
+  ctx.fillText("Y",5,HEIGHT-5);
+  ctx.moveTo(1,1);
+  ctx.lineTo(WIDTH,1);
+  ctx.stroke();
+  ctx.fillText("X",WIDTH-20,20);
 }
 
 function init() {
@@ -119,6 +127,10 @@ function init() {
   ctx = cnvs.getContext('2d');
   WIDTH = cnvs.width;
   HEIGHT = cnvs.height;
+  ctx.font="12px Arial";
+  ctx.moveTo(1,1);
+  ctx.lineTo(1,HEIGHT);
+  ctx.stroke();
   return setInterval(draw, 100);
 }
 
