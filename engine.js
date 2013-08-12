@@ -26,22 +26,26 @@ var particle = (function (x,y,dx,dy){
     },
     iterate: function (){
       circle(x, y, 10);
-       //for(i = 0; i < particles.length; i++){
-       // document.getElementById('debug').innerHTML = i;
-        // if(particles[i] == this)
-          // continue;
-        // distance = this.distanceFrom(particles[i]);
-        // fx = 1/Math.pow(distance.x,2);
-        // fy = 1/Math.pow(distance.y,2);
-        // dx += fx;
-        // dy += fy;
-      //}
+      for(var j = 0; j < particles.length; j++){
+        if(particles[j] == this)
+          continue;
+        var distance = this.distanceFrom(particles[j]);
+        var fx = 1/Math.pow(distance.x,2);
+        var fy = 1/Math.pow(distance.y,2);
+        dx += fx/10;
+        dy += fy/10;
+      }
       if (x + dx > WIDTH || x + dx < 0)
         dx = -dx;
       if (y + dy > HEIGHT || y + dy < 0)
         dy = -dy;
+      // dy += 0.5;
       x += dx;
       y += dy;
+        document.getElementById('debug1').innerHTML = "fx: "+fx;
+        document.getElementById('debug2').innerHTML = "fy: "+fy;
+        document.getElementById('debug3').innerHTML = "dx: "+dx;
+        document.getElementById('debug4').innerHTML = "dy: "+dy;
     }
   };
 });
@@ -103,12 +107,12 @@ function init() {
   ctx = cnvs.getContext('2d');
   WIDTH = cnvs.width;
   HEIGHT = cnvs.height;
-  return setInterval(draw, 10);
+  return setInterval(draw, 100);
 }
 
 function draw() {
   clear();
-  for(i = 0; i < particles.length; i++)
+  for(var i = 0; i < particles.length; i++)
   {
     particles[i].iterate();
   }
