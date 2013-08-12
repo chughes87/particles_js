@@ -1,5 +1,5 @@
 var ctx;
-var WIDTH; 
+var WIDTH;
 var HEIGHT;
 var canvasMinX;
 var canvasMaxX;
@@ -11,7 +11,7 @@ var upx;
 var upy;
 var particles = [];
 
-var particle = (function (x,y,dx,dy){
+var particle = (function (x, y, vx, vy) {
   return {
     getX: function (){
       return x;
@@ -19,33 +19,44 @@ var particle = (function (x,y,dx,dy){
     getY: function (){
       return y;
     },
-    distanceFrom: function (p){
-      var dx = x - p.getX();
-      var dy = y - p.getY();
-      return {tot:Math.sqrt(dx^2+dy^2),x: dx, y:dy};
+    distanceFrom: function (xc, yc){
+      var dx = xc - x;
+      var dy = yc - y;
+      return {dx: dx, dy: dy};
     },
     iterate: function (){
-      circle(x, y, 10);
+      var fx = 0;
+      var fy = 0;
+      var distance;
+      var sign = 0;
+      circle(x, y, 5);
       for(var j = 0; j < particles.length; j++){
-        if(particles[j] == this)
+        if(particles[j] === this)
           continue;
-        var distance = this.distanceFrom(particles[j]);
-        var fx = 1/Math.pow(distance.x,2);
-        var fy = 1/Math.pow(distance.y,2);
-        dx += fx/10;
-        dy += fy/10;
+        distance = particles[j].distanceFrom(x,y);
+        if(distance.dx != 0){
+          var sign = distance.dx/Math.abs(distance.dx);
+          fx += sign/Math.pow(distance.dx,2);
+        }
+        if(distance.dy != 0){
+          var sign = distance.dy/Math.abs(distance.dy);
+          fy += sign/Math.pow(distance.dy,2);
+        }
       }
-      if (x + dx > WIDTH || x + dx < 0)
-        dx = -dx;
-      if (y + dy > HEIGHT || y + dy < 0)
-        dy = -dy;
-      // dy += 0.5;
-      x += dx;
-      y += dy;
-        document.getElementById('debug1').innerHTML = "fx: "+fx;
-        document.getElementById('debug2').innerHTML = "fy: "+fy;
-        document.getElementById('debug3').innerHTML = "dx: "+dx;
-        document.getElementById('debug4').innerHTML = "dy: "+dy;
+      vx += fx*10;
+      vy += fy*10;
+      line(x,y,x+fx*100,y+fy*100,'#499df5')
+      if (x + vx > WIDTH || x + vx < 0)
+        vx = -vx;
+      if (y + vy > HEIGHT || y + vy < 0)
+        vy = -vy;
+      line(x,y,x+vx*10,y+vy*10,'#ff0000');
+      y += vy;
+      x += vx;
+      // document.getElementById('debug1').innerHTML = "fx: "+fx;
+      // document.getElementById('debug2').innerHTML = "fy: "+fy;
+      // document.getElementById('debug3').innerHTML = "dx: "+vx;
+      // document.getElementById('debug4').innerHTML = "dy: "+vy;
     }
   };
 });
@@ -91,11 +102,12 @@ function circle(x,y,r) {
   ctx.fill();
 }
 
-function rect(x,y,w,h) {
-  ctx.beginPath();
-  ctx.rect(x,y,w,h);
-  ctx.closePath();
-  ctx.fill();
+function line(x1,y1,x2,y2,color){
+  ctx.moveTo(x1,y1);
+  ctx.lineTo(x2,y2);
+  ctx.strokeStyle = color;
+  ctx.stroke();
+  ctx.strokeStyle = '#000000';
 }
 
 function clear() {
