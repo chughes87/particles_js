@@ -14,6 +14,14 @@ var new_world = [];
 
 var particle = (function (x, y, vx, vy) {
   return {
+    copy: function (p){
+      var vel = p.getVelocity();
+      var pos = p.getPosition();
+      x = pos.x;
+      y = pos.y;
+      vx = vel.x;
+      vy = vel.y;
+    },
     getPosition: function (){
       return {x: x, y: y};
     },
@@ -30,9 +38,10 @@ var particle = (function (x, y, vx, vy) {
     },
     calcGrav: function (x2, y2)
     {
-      dist = this.distanceFrom(x2,y2);
+      var dist = this.distanceFrom(x2,y2);
       var forceX = 0;
       var forceY = 0;
+      var sign;
       if(dist.x != 0){
         sign = dist.x/Math.abs(dist.x);
         forceX += sign/Math.pow(dist.x,2);
@@ -43,65 +52,62 @@ var particle = (function (x, y, vx, vy) {
       }
       return {x: forceX, y: forceY};
     },
+    gravity: function(){
+      vy += 0.5;
+    },
+    calcAttraction: function(){
+      var force;
+      for(var j = 0; j < new_world.length; j++){
+        if(new_world[j] !== this && vx+vy < 10){
+          force = old_world[j].calcGrav(x,y);
+          if(vx + force.x*10 < 5)
+            vx += force.x*10;
+          if(vy + force.y*10 < 5)
+            vy += force.y*10;
+        }
+      }
+    },
+    display: function(){
+      circle(x,y,10);
+    },
     detectCollision: function (p)
     {
-      vel = p.getVelocity();
-      pos = p.getPosition();
+      var vel = p.getVelocity();
+      var pos = p.getPosition();
       if(this.distanceFrom(pos.x,pos.y).total <= 20)
         return 1;
       else
         return 0;
     },
-    iterate: function (){
-      var force;
-      var dist;
-      var sign = 0;
-
-      circle(x, y, 10);
-
+    detectCollisions: function (){
       for(var j = 0; j < old_world.length; j++){
-        if(old_world[j] !== this){
-          force = old_world[j].calcGrav(x,y);
-          vx += force.x*1000;
-          vy += force.y*1000;
-          if(this.detectCollision(old_world[j])){
-            document.getElementById('debug1').innerHTML = "COLLISION!";
-            vx = old_world[j].getVelocity.x;
-            vy = old_world[j].getVelocity.y;
-            // vx += -force.x*1000;
-            // vy += -force.y*1000;
+        if(new_world[j] !== this){
+          if(this.detectCollision(old_world[j]) === 1){
+            vx = old_world[j].getVelocity().x;
+            vy = old_world[j].getVelocity().y;
           }
         }
       }
-
-
-      if (x + vx > WIDTH || x + vx < 0)
-        vx = -vx;
-      if (y + vy > HEIGHT || y + vy < 0)
-        vy = -vy;
-
+    },
+    iterate: function(){
       line(x,y,x+vx,y+vy,'#ff0000');
       y += vy;
       x += vx;
-      // document.getElementById('debug1').innerHTML = "forceX: "+force.x;
-      // document.getElementById('debug2').innerHTML = "forceY:"+force.y;
-      // document.getElementById('debug3').innerHTML = "vx: "+vx;
-      // document.getElementById('debug4').innerHTML = "vy: "+vy;
+    },
+    checkBorders: function(){
+      if (x + vx + 10 > WIDTH || x + vx < 0)
+        vx = -vx;
+      if (y + vy + 10 > HEIGHT || y + vy < 0)
+        vy = -vy;
     }
   };
 });
 
 function addParticle(x,y,dx,dy)
 {
-  old_world.push(particle(x,y,dx,dy));//{'x':x,'y':y,'dx':dx,'dy':dy});
+  new_world.push(particle(x,y,dx,dy));
+  old_world.push(particle(x,y,dx,dy));
 }
-
-// function init_mouse() {
-//   canvasMinX = document.getElementById('canvas').offset().left;
-//   canvasMaxX = canvasMinX + WIDTH;
-//   canvasMinY = document.getElementById('canvas').offset().top;
-//   canvasMaxY = canvasMinY + HEIGHT;
-// }
 
 
 function onMouseClick(evt)
@@ -155,18 +161,22 @@ function init() {
   ctx = cnvs.getContext('2d');
   WIDTH = cnvs.width;
   HEIGHT = cnvs.height;
-  ctx.font="12px Arial";
-  // return setInterval(draw, 100);
+  ctx.font = "12px Arial";
+  return setInterval(draw, 10);
 }
 
 function draw() {
   clear();
-  new_world = old_world;
-  for(var i = 0; i < old_world.length; i++)
-  {
+  for(var i = 0; i < new_world.length; i++){
+    old_world[i].copy(new_world[i]);
+  }
+  for(i = 0; i < new_world.length; i++){
+    new_world[i].calcAttraction();
+    new_world[i].detectCollisions();
+    new_world[i].checkBorders();
     new_world[i].iterate();
+    new_world[i].display();
   }
 }
 
 init();
-// init_mouse();
