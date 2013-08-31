@@ -11,8 +11,11 @@ var upx;
 var upy;
 var old_world = [];
 var new_world = [];
+const positron = '#FF0000';
+const negatron = '#0000FF';
+const neutron = '#00FF00';
 
-var particle = (function (x, y, vx, vy) {
+var particle = (function (x, y, vx, vy, charge) {
   return {
     copy: function (p){
       var vel = p.getVelocity();
@@ -21,6 +24,7 @@ var particle = (function (x, y, vx, vy) {
       y = pos.y;
       vx = vel.x;
       vy = vel.y;
+      charge = p.getCharge();
     },
     getPosition: function (){
       return {x: x, y: y};
@@ -28,20 +32,24 @@ var particle = (function (x, y, vx, vy) {
     getVelocity: function (){
       return {x: vx, y: vy};
     },
-    distanceFrom: function (xc, yc){
-      var dx = x - xc;
-      var dy = y - yc;
+    getCharge: function (){
+      return charge;
+    },
+    distanceFrom: function (p){
+      var pos = p.getPosition();
+      var dx = x - pos.x;
+      var dy = y - pos.y;
       var dist = Math.sqrt(Math.pow(dx,2)+Math.pow(dy,2));
       var xComp = dist*dist/dx;
       var yComp = dist*dist/dy;
       return {total: dist, x: xComp, y: yComp};
     },
-    calcGrav: function (x2, y2)
+    calcAttraction: function (p)
     {
-      var dist = this.distanceFrom(x2,y2);
+      var dist = this.distanceFrom(p);
       var forceX = 0;
       var forceY = 0;
-      var sign;
+      var sign = 0;
       if(dist.x != 0){
         sign = dist.x/Math.abs(dist.x);
         forceX += sign/Math.pow(dist.x,2);
@@ -53,66 +61,93 @@ var particle = (function (x, y, vx, vy) {
       return {x: forceX, y: forceY};
     },
     gravity: function(){
-      vy += 0.5;
+      vy += 0.1;
+      return this;
     },
-    calcAttraction: function(){
-      var force;
+    calcAttractions: function(){
+      var force = 0;
+      var sign = 1;
       for(var j = 0; j < new_world.length; j++){
         if(new_world[j] !== this && vx+vy < 10){
-          force = old_world[j].calcGrav(x,y);
-          if(vx + force.x*10 < 5)
-            vx += force.x*10;
-          if(vy + force.y*10 < 5)
-            vy += force.y*10;
+          sign = - charge * old_world[j].getCharge();
+          force = old_world[j].calcAttraction(this);
+          if(vx + force.x*100 < 5)
+            vx += sign*force.x*100;
+          if(vy + force.y*100 < 5)
+            vy += sign*force.y*100;
         }
       }
+      return this;
     },
     display: function(){
-      circle(x,y,10);
+      if(charge === -1)
+        circle(x,y,10,negatron);
+      else if(charge === 1)
+        circle(x,y,10,positron);
+      else
+        circle(x,y,10,neutron);
     },
     detectCollision: function (p)
     {
-      var vel = p.getVelocity();
-      var pos = p.getPosition();
-      if(this.distanceFrom(pos.x,pos.y).total <= 20)
+      if(this.distanceFrom(p).total <= 20)
         return 1;
       else
         return 0;
     },
     detectCollisions: function (){
+      var dist;
       for(var j = 0; j < old_world.length; j++){
         if(new_world[j] !== this){
+          dist = this.distanceFrom(old_world[j]);
           if(this.detectCollision(old_world[j]) === 1){
             vx = old_world[j].getVelocity().x;
             vy = old_world[j].getVelocity().y;
           }
         }
       }
+      return this;
     },
     iterate: function(){
-      line(x,y,x+vx,y+vy,'#ff0000');
+      // line(x,y,x+vx,y+vy,'#ff0000');
       y += vy;
       x += vx;
+      return this;
     },
     checkBorders: function(){
       if (x + vx + 10 > WIDTH || x + vx < 0)
         vx = -vx;
       if (y + vy + 10 > HEIGHT || y + vy < 0)
         vy = -vy;
+      return this;
     }
   };
 });
 
-function addParticle(x,y,dx,dy)
+function draw() {
+  clear();
+  for(var i = 0; i < new_world.length; i++){
+    old_world[i].copy(new_world[i]);
+  }
+  for(i = 0; i < new_world.length; i++){
+    new_world[i].calcAttractions()
+                .detectCollisions()
+                .gravity()
+                .checkBorders()
+                .iterate()
+                .display();
+  }
+}
+
+function addParticle(x,y,dx,dy,charge)
 {
-  new_world.push(particle(x,y,dx,dy));
-  old_world.push(particle(x,y,dx,dy));
+  new_world.push(particle(x,y,dx,dy,charge));
+  old_world.push(particle(x,y,dx,dy,charge));
 }
 
 
 function onMouseClick(evt)
 {
-  addParticle(evt.pageX,evt.pageY,(downx-upx)/10,(downy-upy)/10);
+  addParticle(evt.pageX,evt.pageY,(downx-upx)/10,(downy-upy)/10,0);
 }
 
 function onMouseDown(evt)
@@ -129,17 +164,25 @@ function onMouseUp(evt)
 
 function onKeyPress(evt)
 {
-  draw();
+  addParticle(evt.pageX,evt.pageY,(downx-upx)/10,(downy-upy)/10,-1);
+  // draw();
 }
 
+function onDoubleClick(evt)
+{
+  addParticle(evt.pageX,evt.pageY,(downx-upx)/10,(downy-upy)/10,-1);
+}
+
+document.ondblclick = onDoubleClick;
 document.onmousedown = onMouseDown;
 document.onmouseup = onMouseUp;
 document.onclick = onMouseClick;
 document.onkeypress = onKeyPress;
 
-function circle(x,y,r) {
+function circle(x,y,radius,color) {
+  ctx.fillStyle = color; 
   ctx.beginPath();
-  ctx.arc(x, y, r, 0, Math.PI*2, true);
+  ctx.arc(x, y, radius, 0, Math.PI*2, true);
   ctx.closePath();
   ctx.fill();
 }
@@ -149,7 +192,7 @@ function line(x1,y1,x2,y2,color){
   ctx.lineTo(x2,y2);
   ctx.strokeStyle = color;
   ctx.stroke();
-  ctx.strokeStyle = '#000000';
+  // ctx.strokeStyle = '#000000';
 }
 
 function clear() {
@@ -163,20 +206,6 @@ function init() {
   HEIGHT = cnvs.height;
   ctx.font = "12px Arial";
   return setInterval(draw, 10);
-}
-
-function draw() {
-  clear();
-  for(var i = 0; i < new_world.length; i++){
-    old_world[i].copy(new_world[i]);
-  }
-  for(i = 0; i < new_world.length; i++){
-    new_world[i].calcAttraction();
-    new_world[i].detectCollisions();
-    new_world[i].checkBorders();
-    new_world[i].iterate();
-    new_world[i].display();
-  }
 }
 
 init();
