@@ -1,0 +1,27 @@
+{
+  "name": "particles_js",
+  "version": "1.0.0",
+  "private": true,
+  "description": "particles_js ============",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chughes87/particles_js.git"
+  },
+  "author": "Charles Hughes",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/chughes87/particles_js/issues"
+  },
+  "homepage": "https://github.com/chughes87/particles_js#readme",
+  "dependencies": {
+    "ramda": "^0.27.1"
+  },
+  "devDependencies": {
+    "nodemon-webpack-plugin": "^4.3.2",
+    "webpack": "^4.44.1",
+    "webpack-cli": "^3.3.12"
+  }
+}
