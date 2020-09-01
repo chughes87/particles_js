@@ -14,9 +14,24 @@ var new_world = [];
 const positron = '#FF0000';
 const negatron = '#0000FF';
 const neutron = '#00FF00';
+const MAX_VELOCITY = 2;
+const CIRCLE_RADIUS = 10;
+var drawTime = 10;
+
+function makeid(length) {
+  var result           = '';
+  var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  var charactersLength = characters.length;
+  for ( var i = 0; i < length; i++ ) {
+     result += characters.charAt(Math.floor(Math.random() * charactersLength));
+  }
+  return result;
+}
 
 var particle = (function (x, y, vx, vy, charge) {
   return {
+    id: makeid(10),
+    justColided: false,
     copy: function (p){
       var vel = p.getVelocity();
       var pos = p.getPosition();
@@ -25,6 +40,8 @@ var particle = (function (x, y, vx, vy, charge) {
       vx = vel.x;
       vy = vel.y;
       charge = p.getCharge();
+      this.justColided = p.justColided;
+      this.id = p.id;
     },
     getPosition: function (){
       return {x: x, y: y};
@@ -61,50 +78,56 @@ var particle = (function (x, y, vx, vy, charge) {
       return {x: forceX, y: forceY};
     },
     gravity: function(){
-      vy += 0.1;
+      vy += 0.01;
       return this;
     },
     calcAttractions: function(){
-      var force = 0;
-      var sign = 1;
+      if (this.justColided) {
+        return this;
+      }
       for(var j = 0; j < new_world.length; j++){
-        if(new_world[j] !== this && vx+vy < 10){
-          sign = - charge * old_world[j].getCharge();
-          force = old_world[j].calcAttraction(this);
-          if(vx + force.x*100 < 5)
-            vx += sign*force.x*100;
-          if(vy + force.y*100 < 5)
-            vy += sign*force.y*100;
+        if(new_world[j] !== this && vx < MAX_VELOCITY && vy < MAX_VELOCITY){
+          const sign = - charge * old_world[j].getCharge();
+          const force = old_world[j].calcAttraction(this);
+          if(Math.abs(vx + force.x*100) < 5)
+            vx += sign*force.x*10;
+          if(Math.abs(vy + force.y*100) < 5)
+            vy += sign*force.y*10;
         }
       }
       return this;
     },
-    display: function(){
-      if(charge === -1)
-        circle(x,y,10,negatron);
-      else if(charge === 1)
-        circle(x,y,10,positron);
-      else
-        circle(x,y,10,neutron);
+    display: function(showId = false){
+      ctx.fillStyle = this.getType(); 
+      ctx.beginPath();
+      ctx.arc(x, y, CIRCLE_RADIUS, 0, Math.PI*2, true);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillText(`${vx.toFixed(2)}, ${vy.toFixed(2)}, ${this.justColided} ${showId ? this.id : ''}`, x, y);
     },
-    detectCollision: function (p)
-    {
-      if(this.distanceFrom(p).total <= 20)
-        return 1;
-      else
-        return 0;
-    },
+    getType: () => charge === -1 ? negatron : charge === 1 ? positron : neutron,
+    detectCollision: function (p) { return this.distanceFrom(p).total <= (CIRCLE_RADIUS*2) },
     detectCollisions: function (){
+      round = makeid(4);
       var dist;
-      for(var j = 0; j < old_world.length; j++){
-        if(new_world[j] !== this){
-          dist = this.distanceFrom(old_world[j]);
-          if(this.detectCollision(old_world[j]) === 1){
-            vx = old_world[j].getVelocity().x;
-            vy = old_world[j].getVelocity().y;
+      console.log(old_world.length);
+      old_world
+        .filter(b => b.id !== this.id)
+        .forEach(b => {
+          dist = this.distanceFrom(b);
+          const collisionDetected = this.detectCollision(b);
+          if(collisionDetected && !this.justColided){
+            // const dy = y - b.y;
+            // const dx = x - b.x;
+            vx = b.getVelocity().x;
+            vy = b.getVelocity().y;
+            this.justColided = true;
+            this.detectionRound = round;
           }
-        }
-      }
+          if (!collisionDetected && this.justColided && round !== this.detectionRound) {
+            this.justColided = false;
+          }
+        });
       return this;
     },
     iterate: function(){
@@ -125,67 +148,60 @@ var particle = (function (x, y, vx, vy, charge) {
 
 function draw() {
   clear();
-  for(var i = 0; i < new_world.length; i++){
-    old_world[i].copy(new_world[i]);
-  }
-  for(i = 0; i < new_world.length; i++){
-    new_world[i].calcAttractions()
-                .detectCollisions()
-                .gravity()
-                .checkBorders()
-                .iterate()
-                .display();
-  }
+  old_world.forEach((w,i) => w.copy(new_world[i]));
+  new_world.map(
+    w => w
+      .detectCollisions()
+      .calcAttractions()
+      // .gravity()
+      .checkBorders()
+      .iterate()
+      .display()
+  )
+  setTimeout(draw, drawTime);
 }
 
-function addParticle(x,y,dx,dy,charge)
-{
+function addParticle(x,y,charge) {
+  const dx = (downx-upx)/10;
+  const dy = (downy-upy)/10;
   new_world.push(particle(x,y,dx,dy,charge));
   old_world.push(particle(x,y,dx,dy,charge));
 }
 
 
-function onMouseClick(evt)
-{
-  addParticle(evt.pageX,evt.pageY,(downx-upx)/10,(downy-upy)/10,0);
+
+function onRightClick(evt) {
+  evt.preventDefault();
 }
 
-function onMouseDown(evt)
-{
+function onMouseDown(evt) {
   downx = evt.pageX;
   downy = evt.pageY;
 }
 
-function onMouseUp(evt)
-{
+function onMouseUp(evt) {
   upx = evt.pageX;
   upy = evt.pageY;
+
+
+  let charge = null;
+  switch (evt.button) {
+    case 0:
+      charge = 1;
+      break;
+    case 1:
+      charge = 0;
+      break;
+    case 2:
+      charge = -1;
+      break;
+  }
+  addParticle(evt.pageX,evt.pageY,charge);
 }
 
-function onKeyPress(evt)
-{
-  addParticle(evt.pageX,evt.pageY,(downx-upx)/10,(downy-upy)/10,-1);
-  // draw();
-}
-
-function onDoubleClick(evt)
-{
-  addParticle(evt.pageX,evt.pageY,(downx-upx)/10,(downy-upy)/10,-1);
-}
-
-document.ondblclick = onDoubleClick;
 document.onmousedown = onMouseDown;
 document.onmouseup = onMouseUp;
-document.onclick = onMouseClick;
-document.onkeypress = onKeyPress;
-
-function circle(x,y,radius,color) {
-  ctx.fillStyle = color; 
-  ctx.beginPath();
-  ctx.arc(x, y, radius, 0, Math.PI*2, true);
-  ctx.closePath();
-  ctx.fill();
-}
+document.oncontextmenu = onRightClick;
 
 function line(x1,y1,x2,y2,color){
   ctx.moveTo(x1,y1);
@@ -205,7 +221,7 @@ function init() {
   WIDTH = cnvs.width;
   HEIGHT = cnvs.height;
   ctx.font = "12px Arial";
-  return setInterval(draw, 10);
+  return draw();
 }
 
 init();
